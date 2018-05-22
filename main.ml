@@ -3,19 +3,25 @@ open Cohttp
 open Cohttp_lwt_unix
 
 type uri_catch =
- | Simple of Re.t
- | Complex of string * Re.t
+  | Simple of Re.t
+  | Complex of string * Re.t
 
 type uri_parameters = (string * string) list
 type query_parameters = (string * string list) list
 type body = string
 type status_code = int
 
+type handler_response =
+  | Full of status_code * body
+  | Normal of status_code * body option
+  | Minimal of status_code
+
 type connect_handler = uri_parameters -> query_parameters -> (status_code * body)
 type delete_handler = uri_parameters -> query_parameters -> body option -> (status_code * body option)
 type get_handler = uri_parameters -> query_parameters -> (status_code * body)
 type head_handler = uri_parameters -> query_parameters -> status_code
 type options_handler = uri_parameters -> query_parameters -> (status_code * body)
+type other_handler = string -> uri_parameters -> query_parameters -> body option -> (status_code * body option)
 type patch_handler = uri_parameters -> query_parameters -> body -> status_code
 type post_handler = uri_parameters -> query_parameters -> body -> (status_code * body)
 type put_handler = uri_parameters -> query_parameters -> body -> status_code
@@ -23,16 +29,41 @@ type trace_handler = uri_parameters -> query_parameters -> status_code
 
 type uri_handler = Re.t list
 
+type method_handler = 
+  | Connect_handler of uri_handler * connect_handler
+  | Delete_handler of uri_handler * delete_handler
+  | Get_handler of uri_handler * get_handler
+  | Head_handler of uri_handler * head_handler
+  | Options_handler of uri_handler * options_handler
+  | Other_handler of uri_handler * other_handler
+  | Patch_handler of uri_handler * patch_handler
+  | Post_handler of uri_handler * post_handler
+  | Put_handler of uri_handler * put_handler
+  | Trace_handler of uri_handler * trace_handler
+
+type method_handlers = 
+  | Connect_handlers of (uri_handler * connect_handler) list
+  | Delete_handlers of (uri_handler * delete_handler) list
+  | Get_handlers of (uri_handler * get_handler) list
+  | Head_handlers of (uri_handler * head_handler) list
+  | Options_handlers of (uri_handler * options_handler) list
+  | Other_handlers of string * (uri_handler * other_handler) list
+  | Patch_handlers of (uri_handler * patch_handler) list
+  | Post_handlers of (uri_handler * post_handler) list
+  | Put_handlers of (uri_handler * put_handler) list
+  | Trace_handlers of (uri_handler * trace_handler) list
+
 type handler_config = {
-  connect_handler : (uri_handler * connect_handler) list;
-  delete_handler : (uri_handler * delete_handler) list;
-  get_handler : (uri_handler * get_handler) list;
-  head_handler : (uri_handler * head_handler) list;
-  options_handler : (uri_handler * options_handler) list;
-  patch_handler : (uri_handler * patch_handler) list;
-  post_handler : (uri_handler * post_handler) list;
-  put_handler : (uri_handler * put_handler) list;
-  trace_handler : (uri_handler * trace_handler) list;
+  connect_handlers : (uri_handler * connect_handler) list;
+  delete_handlers : (uri_handler * delete_handler) list;
+  get_handlers : (uri_handler * get_handler) list;
+  head_handlers : (uri_handler * head_handler) list;
+  options_handlers : (uri_handler * options_handler) list;
+  other_handlers: (uri_handler * other_handler) list;
+  patch_handlers : (uri_handler * patch_handler) list;
+  post_handlers : (uri_handler * post_handler) list;
+  put_handlers : (uri_handler * put_handler) list;
+  trace_handlers : (uri_handler * trace_handler) list;
 }
 
 let anytihng = Re.rep1 (Re.compl [Re.char '/'])
@@ -54,18 +85,42 @@ let capture name regex uri_part =
   let first_match = Base.List.hd matches in
   Base.Option.map first_match ~f:(fun value -> (name,value))
 
-let handle_meth meth =
+let find_connect_handler handler = ()
+let find_delete_handler handler = ()
+let find_get_handler handler = ()
+let find_head_handler handler = ()
+let find_options_handler handler = ()
+let find_other_handler argument handler = ()
+let find_patch_handler handler = ()
+let find_post_handler handler = ()
+let find_put_handler handler = ()
+let find_trace_handler handler = ()
+
+let find_method_handlers (meth:Cohttp.Code.meth) handler_config =
   match meth with
-  | `CONNECT -> ()
-  | `DELETE -> ()
-  | `GET -> ()
-  | `HEAD -> ()
-  | `OPTIONS -> ()
-  | `Other string -> ()
-  | `PATCH -> ()
-  | `POST -> ()
-  | `PUT -> ()
-  | `TRACE -> ()
+  | `CONNECT -> Connect_handlers handler_config.connect_handlers
+  | `DELETE -> Delete_handlers handler_config.delete_handlers
+  | `GET -> Get_handlers handler_config.get_handlers
+  | `HEAD -> Head_handlers handler_config.head_handlers
+  | `OPTIONS -> Options_handlers handler_config.options_handlers
+  | `Other argument -> Other_handlers (argument, handler_config.other_handlers)
+  | `PATCH -> Patch_handlers handler_config.patch_handlers
+  | `POST -> Post_handlers handler_config.post_handlers
+  | `PUT -> Put_handlers handler_config.put_handlers
+  | `TRACE -> Trace_handlers handler_config.trace_handlers
+
+let find_handler uri handlers =
+  match handlers with
+  | Connect_handlers handlers -> ()
+  | Delete_handlers handlers -> ()
+  | Get_handlers handlers -> ()
+  | Head_handlers handlers -> ()
+  | Options_handlers handlers -> ()
+  | Other_handlers (argument, handlers) -> ()
+  | Patch_handlers handlers -> ()
+  | Post_handlers handlers -> ()
+  | Put_handlers handlers -> ()
+  | Trace_handlers handlers -> ()
 
 let server =
   let callback _conn req body =
@@ -94,7 +149,7 @@ let () = ignore (Lwt_main.run server)
   in
   Server.create ~mode:(`TCP (`Port 8000)) (Server.make ~callback ())
 
-let () = ignore (Lwt_main.run server)*)
+  let () = ignore (Lwt_main.run server)*)
 
 (*
 type nonrec status_code =                                                                                            ──┴────────────┴───────────────────┴─────────────┴───────────────┴───────────────────┴───────────────────────┴─────────────────┘
