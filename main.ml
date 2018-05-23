@@ -47,7 +47,7 @@ type method_handlers =
   | Get_handlers of (uri_handler * get_handler) list
   | Head_handlers of (uri_handler * head_handler) list
   | Options_handlers of (uri_handler * options_handler) list
-  | Other_handlers of string * (uri_handler * other_handler) list
+  | Other_handlers of (uri_handler * other_handler) list
   | Patch_handlers of (uri_handler * patch_handler) list
   | Post_handlers of (uri_handler * post_handler) list
   | Put_handlers of (uri_handler * put_handler) list
@@ -71,7 +71,7 @@ let anytihng = Re.rep1 (Re.compl [Re.char '/'])
 let uri_separator = Re.char '/'
 
 let compose_re regexes = 
-  let regexes_wit_separator = Base.List.fold regexes ~init:[] ~f:(fun accum regex -> uri_separator :: regex :: accum ) in
+  let regexes_wit_separator = Base.List.fold_right regexes ~f:(fun regex accum -> uri_separator :: regex :: accum ) ~init:[] in
   Re.seq regexes_wit_separator
 
 let split_uri uri =
@@ -85,16 +85,24 @@ let capture name regex uri_part =
   let first_match = Base.List.hd matches in
   Base.Option.map first_match ~f:(fun value -> (name,value))
 
-let find_connect_handler handler = ()
-let find_delete_handler handler = ()
-let find_get_handler handler = ()
-let find_head_handler handler = ()
-let find_options_handler handler = ()
-let find_other_handler argument handler = ()
-let find_patch_handler handler = ()
-let find_post_handler handler = ()
-let find_put_handler handler = ()
-let find_trace_handler handler = ()
+let find_specific_handler uri handlers =
+  Base.List.find handlers (fun handler -> 
+    let uri_handler, _ = handler in
+    let composed_uri_handler = Re.seq uri_handler in
+    let compiled_uri_handler = Re.compile composed_uri_handler in
+    Re.execp compiled_uri_handler uri
+  )
+
+let find_connect_handler uri handlers = find_specific_handler
+let find_delete_handler uri handlers = find_specific_handler
+let find_get_handler uri handlers = find_specific_handler
+let find_head_handler uri handlers = find_specific_handler
+let find_options_handler uri handlers = find_specific_handler
+let find_other_handler uri handlers = find_specific_handler
+let find_patch_handler uri handlers = find_specific_handler
+let find_post_handler uri handlers = find_specific_handler
+let find_put_handler uri handlers = find_specific_handler
+let find_trace_handler uri handlers = find_specific_handler
 
 let find_method_handlers (meth:Cohttp.Code.meth) handler_config =
   match meth with
@@ -103,7 +111,7 @@ let find_method_handlers (meth:Cohttp.Code.meth) handler_config =
   | `GET -> Get_handlers handler_config.get_handlers
   | `HEAD -> Head_handlers handler_config.head_handlers
   | `OPTIONS -> Options_handlers handler_config.options_handlers
-  | `Other argument -> Other_handlers (argument, handler_config.other_handlers)
+  | `Other argument -> Other_handlers handler_config.other_handlers
   | `PATCH -> Patch_handlers handler_config.patch_handlers
   | `POST -> Post_handlers handler_config.post_handlers
   | `PUT -> Put_handlers handler_config.put_handlers
@@ -111,16 +119,16 @@ let find_method_handlers (meth:Cohttp.Code.meth) handler_config =
 
 let find_handler uri handlers =
   match handlers with
-  | Connect_handlers handlers -> ()
-  | Delete_handlers handlers -> ()
-  | Get_handlers handlers -> ()
-  | Head_handlers handlers -> ()
-  | Options_handlers handlers -> ()
-  | Other_handlers (argument, handlers) -> ()
-  | Patch_handlers handlers -> ()
-  | Post_handlers handlers -> ()
-  | Put_handlers handlers -> ()
-  | Trace_handlers handlers -> ()
+  | Connect_handlers handlers -> find_connect_handler uri handlers
+  | Delete_handlers handlers -> find_delete_handler uri handlers
+  | Get_handlers handlers -> find_get_handler uri handlers
+  | Head_handlers handlers -> find_head_handler uri handlers
+  | Options_handlers handlers -> find_options_handler uri handlers
+  | Other_handlers handlers -> find_other_handler uri handlers
+  | Patch_handlers handlers -> find_patch_handler uri handlers
+  | Post_handlers handlers -> find_post_handler uri handlers
+  | Put_handlers handlers -> find_put_handler uri handlers
+  | Trace_handlers handlers -> find_trace_handler uri handlers
 
 let server =
   let callback _conn req body =
