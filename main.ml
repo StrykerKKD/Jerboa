@@ -2,10 +2,6 @@ open Lwt
 open Cohttp
 open Cohttp_lwt_unix
 
-type uri_catch =
-  | Simple of Re.t
-  | Complex of string * Re.t
-
 type uri_parameters = (string * string) list
 type query_parameters = (string * string list) list
 type body = string
@@ -27,7 +23,11 @@ type post_handler = uri_parameters -> query_parameters -> body -> (status_code *
 type put_handler = uri_parameters -> query_parameters -> body -> status_code
 type trace_handler = uri_parameters -> query_parameters -> status_code
 
-type uri_handler = Re.t list
+type uri_catcher =
+  | Simple_catch of Re.t
+  | Parameter_catch of string * Re.t
+
+type uri_handler = uri_catcher list
 
 type method_handler = 
   | Connect_handler of uri_handler * connect_handler
@@ -70,8 +70,13 @@ let anytihng = Re.rep1 (Re.compl [Re.char '/'])
 
 let uri_separator = Re.char '/'
 
-let compose_re regexes = 
-  let regexes_wit_separator = Base.List.fold_right regexes ~f:(fun regex accum -> uri_separator :: regex :: accum ) ~init:[] in
+let uri_catch_composer uri_catcher accumulator = 
+  match uri_catcher with
+  | Simple_catch uri_catch -> uri_separator :: uri_catch :: accumulator
+  | Parameter_catch (_, uri_catch) -> uri_separator :: uri_catch :: accumulator
+
+let compose_uri_handler uri_handler =
+  let regexes_wit_separator = Base.List.fold_right uri_handler ~f:uri_catch_composer ~init:[] in
   Re.seq regexes_wit_separator
 
 let split_uri uri =
@@ -79,32 +84,38 @@ let split_uri uri =
   let re = Re.char '/' |> Re.compile in
   Re.split re raw_uri
 
-let capture name regex uri_part =
-  let compiled_regex = Re.compile regex in
-  let matches = Re.matches compiled_regex uri_part in
-  let first_match = Base.List.hd matches in
-  Base.Option.map first_match ~f:(fun value -> (name,value))
+let capture parameter uri_catch uri_part =
+  let compiled_uri_catch = Re.compile uri_catch in
+  let matches = Re.matches compiled_uri_catch uri_part in
+  (parameter, Base.List.hd matches)
 
-let find_specific_handler uri handlers =
-  Base.List.find handlers (fun handler -> 
-    let uri_handler, _ = handler in
-    let composed_uri_handler = Re.seq uri_handler in
+let capture_parameter accumulator uri_catcher uri_part =
+  match uri_catcher with
+  | Simple_catch uri_catch -> accumulator
+  | Parameter_catch (parameter, uri_catch) -> (capture parameter uri_catch uri_part) :: accumulator
+
+let capture_parameters uri_handler uri_parts =
+  Base.List.fold2 uri_handler uri_parts ~init:[] ~f:capture_parameter
+
+let find_specific_handler uri uri_handlers =
+  Base.List.find uri_handlers (fun uri_handler ->
+    let composed_uri_handler = compose_uri_handler uri_handler in
     let compiled_uri_handler = Re.compile composed_uri_handler in
     Re.execp compiled_uri_handler uri
   )
 
-let find_connect_handler uri handlers = find_specific_handler
-let find_delete_handler uri handlers = find_specific_handler
-let find_get_handler uri handlers = find_specific_handler
-let find_head_handler uri handlers = find_specific_handler
-let find_options_handler uri handlers = find_specific_handler
-let find_other_handler uri handlers = find_specific_handler
-let find_patch_handler uri handlers = find_specific_handler
-let find_post_handler uri handlers = find_specific_handler
-let find_put_handler uri handlers = find_specific_handler
-let find_trace_handler uri handlers = find_specific_handler
+let find_connect_handler uri uri_handlers = find_specific_handler uri uri_handlers
+let find_delete_handler uri uri_handlers = find_specific_handler uri uri_handlers
+let find_get_handler uri uri_handlers = find_specific_handler uri uri_handlers
+let find_head_handler uri uri_handlers = find_specific_handler uri uri_handlers
+let find_options_handler uri uri_handlers = find_specific_handler uri uri_handlers
+let find_other_handler uri uri_handlers = find_specific_handler uri uri_handlers
+let find_patch_handler uri uri_handlers = find_specific_handler uri uri_handlers
+let find_post_handler uri uri_handlers = find_specific_handler uri uri_handlers
+let find_put_handler uri uri_handlers = find_specific_handler uri uri_handlers
+let find_trace_handler uri uri_handlers = find_specific_handler uri uri_handlers
 
-let find_method_handlers (meth:Cohttp.Code.meth) handler_config =
+let find_method_handlers meth handler_config =
   match meth with
   | `CONNECT -> Connect_handlers handler_config.connect_handlers
   | `DELETE -> Delete_handlers handler_config.delete_handlers
@@ -130,19 +141,26 @@ let find_handler uri handlers =
   | Put_handlers handlers -> find_put_handler uri handlers
   | Trace_handlers handlers -> find_trace_handler uri handlers
 
-let server =
+let collect_uri_handlers method_handlers =
+  Base.List.map method_handlers ~f:(fun (uri_handler, _) -> uri_handler)
+
+let server handler_config =
   let callback _conn req body =
     let uri = Request.uri req in
-    let uri_parts = split_uri uri in
-    let query = Uri.query uri in
+    let path = Uri.to_string uri in
     let meth = Request.meth req in
+    let method_handlers = find_method_handlers meth handler_config in
+    let uri_handler = find_handler path method_handlers in
+    let uri_parts = split_uri uri in
+    let parameters = capture_parameters (Base.Option.value_exn uri_handler) uri_parts in
+    let query = Uri.query uri in
     let headers =  Request.headers req in
     Cohttp_lwt.Body.to_string body >>= fun body ->
     Server.respond_string ~status:`OK ~body ()
   in
   Server.create ~mode:(`TCP (`Port 8000)) (Server.make ~callback ())
 
-let () = ignore (Lwt_main.run server)
+(*let () = ignore (Lwt_main.run server)*)
 
 (*let server =
   let callback _conn req body =
