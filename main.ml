@@ -121,9 +121,6 @@ let get_uri_handler method_handler =
 let capture_parameters method_handler uri_parts =
   Base.List.fold2 method_handler uri_parts ~init:[] ~f:capture_parameter
 
-let collect_uri_handlers handler_config =
-  Base.List.map handler_config ~f:(fun (uri_handler, _) -> uri_handler)
-
 let find_specific_handler uri handler_config =
   Base.List.find_exn handler_config ~f:(fun (uri_handler, _) -> 
     let composed_uri_handler = compose_uri_handler uri_handler in
@@ -144,7 +141,7 @@ let find_method_handlers meth handler_config =
   | `PUT -> Put_handlers handler_config.put_handlers
   | `TRACE -> Trace_handlers handler_config.trace_handlers
 
-let find_handler uri method_handlers =
+let find_method_handler uri method_handlers =
   match method_handlers with
   | Connect_handlers handler_config -> Connect_handler (find_specific_handler uri handler_config)
   | Delete_handlers handler_config -> Delete_handler (find_specific_handler uri handler_config)
@@ -163,7 +160,7 @@ let server handler_config =
     let path = Uri.to_string uri in
     let meth = Request.meth req in
     let method_handlers = find_method_handlers meth handler_config in
-    let method_handler = find_handler path method_handlers in
+    let method_handler = find_method_handler path method_handlers in
     let uri_handler = get_uri_handler method_handler in
     let uri_parts = split_uri uri in
     let parameters = capture_parameters uri_handler uri_parts in
