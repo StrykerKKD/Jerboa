@@ -23,11 +23,40 @@ type post_handler = uri_parameters -> query_parameters -> body -> (status_code *
 type put_handler = uri_parameters -> query_parameters -> body -> status_code
 type trace_handler = uri_parameters -> query_parameters -> status_code
 
+type handler =
+  | Connect_handler of connect_handler
+  | Delete_handler of delete_handler
+  | Get_handler of get_handler
+  | Head_handler  of head_handler 
+  | Options_handler of options_handler
+  | Other_handler of other_handler
+  | Patch_handler of patch_handler
+  | Post_handler  of post_handler 
+  | Put_handler of put_handler
+  | Trace_handler of trace_handler
+
 type uri_catcher =
   | Simple_catch of Re.t
   | Parameter_catch of string * Re.t
 
 type uri_handler = uri_catcher list
+
+type method_handler = uri_handler * handler
+
+type method_handlers = method_handler list
+
+type handler_config = {
+  connect_handlers : (uri_handler * connect_handler) list;
+  delete_handlers : (uri_handler * delete_handler) list;
+  get_handlers : (uri_handler * get_handler) list;
+  head_handlers : (uri_handler * head_handler) list;
+  options_handlers : (uri_handler * options_handler) list;
+  other_handlers: (uri_handler * other_handler) list;
+  patch_handlers : (uri_handler * patch_handler) list;
+  post_handlers : (uri_handler * post_handler) list;
+  put_handlers : (uri_handler * put_handler) list;
+  trace_handlers : (uri_handler * trace_handler) list;
+}
 
 type method_handler = 
   | Connect_handler of uri_handler * connect_handler
@@ -97,23 +126,32 @@ let capture_parameter accumulator uri_catcher uri_part =
 let capture_parameters uri_handler uri_parts =
   Base.List.fold2 uri_handler uri_parts ~init:[] ~f:capture_parameter
 
-let find_specific_handler uri uri_handlers =
+let collect_uri_handlers handler_config =
+  Base.List.map handler_config ~f:(fun (uri_handler, _) -> uri_handler)
+
+let find_specific_handler uri handler_config =
+  let uri_handlers = collect_uri_handlers handler_config in
   Base.List.find uri_handlers (fun uri_handler ->
     let composed_uri_handler = compose_uri_handler uri_handler in
     let compiled_uri_handler = Re.compile composed_uri_handler in
     Re.execp compiled_uri_handler uri
   )
+  (*Base.List.find handler_config (fun (uri_handler, _) -> 
+    let composed_uri_handler = compose_uri_handler uri_handler in
+    let compiled_uri_handler = Re.compile composed_uri_handler in
+    Re.execp compiled_uri_handler uri
+  )*)
 
-let find_connect_handler uri uri_handlers = find_specific_handler uri uri_handlers
-let find_delete_handler uri uri_handlers = find_specific_handler uri uri_handlers
-let find_get_handler uri uri_handlers = find_specific_handler uri uri_handlers
-let find_head_handler uri uri_handlers = find_specific_handler uri uri_handlers
-let find_options_handler uri uri_handlers = find_specific_handler uri uri_handlers
-let find_other_handler uri uri_handlers = find_specific_handler uri uri_handlers
-let find_patch_handler uri uri_handlers = find_specific_handler uri uri_handlers
-let find_post_handler uri uri_handlers = find_specific_handler uri uri_handlers
-let find_put_handler uri uri_handlers = find_specific_handler uri uri_handlers
-let find_trace_handler uri uri_handlers = find_specific_handler uri uri_handlers
+let find_connect_handler uri handler_config = find_specific_handler uri handler_config
+let find_delete_handler uri handler_config = find_specific_handler uri handler_config
+let find_get_handler uri handler_config  = find_specific_handler uri handler_config
+let find_head_handler uri handler_config = find_specific_handler uri handler_config
+let find_options_handler uri handler_config = find_specific_handler uri handler_config
+let find_other_handler uri handler_config = find_specific_handler uri handler_config
+let find_patch_handler uri handler_config = find_specific_handler uri handler_config
+let find_post_handler uri handler_config = find_specific_handler uri handler_config
+let find_put_handler uri handler_config = find_specific_handler uri handler_config
+let find_trace_handler uri handler_config = find_specific_handler uri handler_config
 
 let find_method_handlers meth handler_config =
   match meth with
@@ -128,21 +166,18 @@ let find_method_handlers meth handler_config =
   | `PUT -> Put_handlers handler_config.put_handlers
   | `TRACE -> Trace_handlers handler_config.trace_handlers
 
-let find_handler uri handlers =
-  match handlers with
-  | Connect_handlers handlers -> find_connect_handler uri handlers
-  | Delete_handlers handlers -> find_delete_handler uri handlers
-  | Get_handlers handlers -> find_get_handler uri handlers
-  | Head_handlers handlers -> find_head_handler uri handlers
-  | Options_handlers handlers -> find_options_handler uri handlers
-  | Other_handlers handlers -> find_other_handler uri handlers
-  | Patch_handlers handlers -> find_patch_handler uri handlers
-  | Post_handlers handlers -> find_post_handler uri handlers
-  | Put_handlers handlers -> find_put_handler uri handlers
-  | Trace_handlers handlers -> find_trace_handler uri handlers
-
-let collect_uri_handlers method_handlers =
-  Base.List.map method_handlers ~f:(fun (uri_handler, _) -> uri_handler)
+let find_handler uri method_handlers =
+  match method_handlers with
+  | Connect_handlers handler_config -> find_connect_handler uri handler_config
+  | Delete_handlers handler_config -> find_delete_handler uri handler_config
+  | Get_handlers handler_config -> find_get_handler uri handler_config
+  | Head_handlers handler_config -> find_head_handler uri handler_config
+  | Options_handlers handler_config -> find_options_handler uri handler_config
+  | Other_handlers handler_config -> find_other_handler uri handler_config
+  | Patch_handlers handler_config -> find_patch_handler uri handler_config
+  | Post_handlers handler_config -> find_post_handler uri handler_config
+  | Put_handlers handler_config -> find_put_handler uri handler_config
+  | Trace_handlers handler_config -> find_trace_handler uri handler_config
 
 let server handler_config =
   let callback _conn req body =
