@@ -105,8 +105,21 @@ let capture_parameter accumulator uri_catcher uri_part =
   | Simple_catch uri_catch -> accumulator
   | Parameter_catch (parameter, uri_catch) -> (capture parameter uri_catch uri_part) :: accumulator
 
-let capture_parameters uri_handler uri_parts =
-  Base.List.fold2 uri_handler uri_parts ~init:[] ~f:capture_parameter
+let get_uri_handler method_handler =
+  match method_handler with
+  | Connect_handler (uri_handler, _) -> uri_handler
+  | Delete_handler (uri_handler, _) -> uri_handler
+  | Get_handler (uri_handler, _) -> uri_handler
+  | Head_handler (uri_handler, _) -> uri_handler
+  | Options_handler (uri_handler, _) -> uri_handler
+  | Other_handler (uri_handler, _) -> uri_handler
+  | Patch_handler (uri_handler, _) -> uri_handler
+  | Post_handler (uri_handler, _) -> uri_handler
+  | Put_handler (uri_handler, _) -> uri_handler
+  | Trace_handler (uri_handler, _) -> uri_handler
+
+let capture_parameters method_handler uri_parts =
+  Base.List.fold2 method_handler uri_parts ~init:[] ~f:capture_parameter
 
 let collect_uri_handlers handler_config =
   Base.List.map handler_config ~f:(fun (uri_handler, _) -> uri_handler)
@@ -150,7 +163,8 @@ let server handler_config =
     let path = Uri.to_string uri in
     let meth = Request.meth req in
     let method_handlers = find_method_handlers meth handler_config in
-    let uri_handler = find_handler path method_handlers in
+    let method_handler = find_handler path method_handlers in
+    let uri_handler = get_uri_handler method_handler in
     let uri_parts = split_uri uri in
     let parameters = capture_parameters uri_handler uri_parts in
     let query = Uri.query uri in
