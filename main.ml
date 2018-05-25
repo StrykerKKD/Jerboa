@@ -23,76 +23,58 @@ type post_handler = uri_parameters -> query_parameters -> body -> (status_code *
 type put_handler = uri_parameters -> query_parameters -> body -> status_code
 type trace_handler = uri_parameters -> query_parameters -> status_code
 
-type handler =
-  | Connect_handler of connect_handler
-  | Delete_handler of delete_handler
-  | Get_handler of get_handler
-  | Head_handler  of head_handler 
-  | Options_handler of options_handler
-  | Other_handler of other_handler
-  | Patch_handler of patch_handler
-  | Post_handler  of post_handler 
-  | Put_handler of put_handler
-  | Trace_handler of trace_handler
-
 type uri_catcher =
   | Simple_catch of Re.t
   | Parameter_catch of string * Re.t
 
 type uri_handler = uri_catcher list
 
-type method_handler = uri_handler * handler
-
-type method_handlers = method_handler list
-
-type handler_config = {
-  connect_handlers : (uri_handler * connect_handler) list;
-  delete_handlers : (uri_handler * delete_handler) list;
-  get_handlers : (uri_handler * get_handler) list;
-  head_handlers : (uri_handler * head_handler) list;
-  options_handlers : (uri_handler * options_handler) list;
-  other_handlers: (uri_handler * other_handler) list;
-  patch_handlers : (uri_handler * patch_handler) list;
-  post_handlers : (uri_handler * post_handler) list;
-  put_handlers : (uri_handler * put_handler) list;
-  trace_handlers : (uri_handler * trace_handler) list;
-}
+type connect_handler_config = uri_handler * connect_handler
+type delete_handler_config = uri_handler * delete_handler
+type get_handler_config = uri_handler * get_handler
+type head_handler_config = uri_handler * head_handler
+type options_handler_config = uri_handler * options_handler
+type other_handler_config = uri_handler * other_handler
+type patch_handler_config = uri_handler * patch_handler
+type post_handler_config = uri_handler * post_handler
+type put_handler_config = uri_handler * put_handler
+type trace_handler_config = uri_handler * trace_handler
 
 type method_handler = 
-  | Connect_handler of uri_handler * connect_handler
-  | Delete_handler of uri_handler * delete_handler
-  | Get_handler of uri_handler * get_handler
-  | Head_handler of uri_handler * head_handler
-  | Options_handler of uri_handler * options_handler
-  | Other_handler of uri_handler * other_handler
-  | Patch_handler of uri_handler * patch_handler
-  | Post_handler of uri_handler * post_handler
-  | Put_handler of uri_handler * put_handler
-  | Trace_handler of uri_handler * trace_handler
+  | Connect_handler of connect_handler_config
+  | Delete_handler of delete_handler_config
+  | Get_handler of get_handler_config
+  | Head_handler of head_handler_config
+  | Options_handler of options_handler_config
+  | Other_handler of other_handler_config
+  | Patch_handler of patch_handler_config
+  | Post_handler of post_handler_config
+  | Put_handler of put_handler_config
+  | Trace_handler of trace_handler_config
 
 type method_handlers = 
-  | Connect_handlers of (uri_handler * connect_handler) list
-  | Delete_handlers of (uri_handler * delete_handler) list
-  | Get_handlers of (uri_handler * get_handler) list
-  | Head_handlers of (uri_handler * head_handler) list
-  | Options_handlers of (uri_handler * options_handler) list
-  | Other_handlers of (uri_handler * other_handler) list
-  | Patch_handlers of (uri_handler * patch_handler) list
-  | Post_handlers of (uri_handler * post_handler) list
-  | Put_handlers of (uri_handler * put_handler) list
-  | Trace_handlers of (uri_handler * trace_handler) list
+  | Connect_handlers of connect_handler_config list
+  | Delete_handlers of delete_handler_config list
+  | Get_handlers of get_handler_config list
+  | Head_handlers of head_handler_config list
+  | Options_handlers of options_handler_config list
+  | Other_handlers of other_handler_config list
+  | Patch_handlers of patch_handler_config list
+  | Post_handlers of post_handler_config list
+  | Put_handlers of put_handler_config list
+  | Trace_handlers of trace_handler_config list
 
 type handler_config = {
-  connect_handlers : (uri_handler * connect_handler) list;
-  delete_handlers : (uri_handler * delete_handler) list;
-  get_handlers : (uri_handler * get_handler) list;
-  head_handlers : (uri_handler * head_handler) list;
-  options_handlers : (uri_handler * options_handler) list;
-  other_handlers: (uri_handler * other_handler) list;
-  patch_handlers : (uri_handler * patch_handler) list;
-  post_handlers : (uri_handler * post_handler) list;
-  put_handlers : (uri_handler * put_handler) list;
-  trace_handlers : (uri_handler * trace_handler) list;
+  connect_handlers : connect_handler_config list;
+  delete_handlers : delete_handler_config list;
+  get_handlers : get_handler_config list;
+  head_handlers : head_handler_config list;
+  options_handlers : options_handler_config list;
+  other_handlers: other_handler_config list;
+  patch_handlers : patch_handler_config list;
+  post_handlers : post_handler_config list;
+  put_handlers : put_handler_config list;
+  trace_handlers : trace_handler_config list;
 }
 
 let anytihng = Re.rep1 (Re.compl [Re.char '/'])
@@ -130,28 +112,11 @@ let collect_uri_handlers handler_config =
   Base.List.map handler_config ~f:(fun (uri_handler, _) -> uri_handler)
 
 let find_specific_handler uri handler_config =
-  let uri_handlers = collect_uri_handlers handler_config in
-  Base.List.find uri_handlers (fun uri_handler ->
+  Base.List.find_exn handler_config ~f:(fun (uri_handler, _) -> 
     let composed_uri_handler = compose_uri_handler uri_handler in
     let compiled_uri_handler = Re.compile composed_uri_handler in
     Re.execp compiled_uri_handler uri
   )
-  (*Base.List.find handler_config (fun (uri_handler, _) -> 
-    let composed_uri_handler = compose_uri_handler uri_handler in
-    let compiled_uri_handler = Re.compile composed_uri_handler in
-    Re.execp compiled_uri_handler uri
-  )*)
-
-let find_connect_handler uri handler_config = find_specific_handler uri handler_config
-let find_delete_handler uri handler_config = find_specific_handler uri handler_config
-let find_get_handler uri handler_config  = find_specific_handler uri handler_config
-let find_head_handler uri handler_config = find_specific_handler uri handler_config
-let find_options_handler uri handler_config = find_specific_handler uri handler_config
-let find_other_handler uri handler_config = find_specific_handler uri handler_config
-let find_patch_handler uri handler_config = find_specific_handler uri handler_config
-let find_post_handler uri handler_config = find_specific_handler uri handler_config
-let find_put_handler uri handler_config = find_specific_handler uri handler_config
-let find_trace_handler uri handler_config = find_specific_handler uri handler_config
 
 let find_method_handlers meth handler_config =
   match meth with
@@ -168,16 +133,16 @@ let find_method_handlers meth handler_config =
 
 let find_handler uri method_handlers =
   match method_handlers with
-  | Connect_handlers handler_config -> find_connect_handler uri handler_config
-  | Delete_handlers handler_config -> find_delete_handler uri handler_config
-  | Get_handlers handler_config -> find_get_handler uri handler_config
-  | Head_handlers handler_config -> find_head_handler uri handler_config
-  | Options_handlers handler_config -> find_options_handler uri handler_config
-  | Other_handlers handler_config -> find_other_handler uri handler_config
-  | Patch_handlers handler_config -> find_patch_handler uri handler_config
-  | Post_handlers handler_config -> find_post_handler uri handler_config
-  | Put_handlers handler_config -> find_put_handler uri handler_config
-  | Trace_handlers handler_config -> find_trace_handler uri handler_config
+  | Connect_handlers handler_config -> Connect_handler (find_specific_handler uri handler_config)
+  | Delete_handlers handler_config -> Delete_handler (find_specific_handler uri handler_config)
+  | Get_handlers handler_config -> Get_handler (find_specific_handler uri handler_config)
+  | Head_handlers handler_config -> Head_handler (find_specific_handler uri handler_config)
+  | Options_handlers handler_config -> Options_handler (find_specific_handler uri handler_config)
+  | Other_handlers handler_config -> Other_handler (find_specific_handler uri handler_config)
+  | Patch_handlers handler_config -> Patch_handler (find_specific_handler uri handler_config)
+  | Post_handlers handler_config -> Post_handler (find_specific_handler uri handler_config)
+  | Put_handlers handler_config -> Put_handler (find_specific_handler uri handler_config)
+  | Trace_handlers handler_config -> Trace_handler (find_specific_handler uri handler_config)
 
 let server handler_config =
   let callback _conn req body =
@@ -187,7 +152,7 @@ let server handler_config =
     let method_handlers = find_method_handlers meth handler_config in
     let uri_handler = find_handler path method_handlers in
     let uri_parts = split_uri uri in
-    let parameters = capture_parameters (Base.Option.value_exn uri_handler) uri_parts in
+    let parameters = capture_parameters uri_handler uri_parts in
     let query = Uri.query uri in
     let headers =  Request.headers req in
     Cohttp_lwt.Body.to_string body >>= fun body ->
