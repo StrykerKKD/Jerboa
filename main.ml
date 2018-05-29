@@ -179,6 +179,23 @@ let get_method_handler method_handler_config =
   | Put_handler_config (_, put_handler) -> Put_handler put_handler
   | Trace_handler_config (_, trace_handler) -> Trace_handler trace_handler
 
+let apply_with_body method_handler uri_parameters query_parameters body = method_handler uri_parameters query_parameters body
+let apply_with_optional_body method_handler uri_parameters query_parameters optional_body = method_handler uri_parameters query_parameters optional_body
+let apply_with_no_body method_handler uri_parameters query_parameters = method_handler uri_parameters query_parameters
+
+let apply_method_handler method_handler =
+  match method_handler with
+  | Connect_handler connect_handler -> ()
+  | Delete_handler delete_handler -> ()
+  | Get_handler get_handler -> ()
+  | Head_handler head_handler -> ()
+  | Options_handler options_handler -> ()
+  | Other_handler other_handler -> ()
+  | Patch_handler patch_handler -> ()
+  | Post_handler post_handler -> ()
+  | Put_handler put_handler -> ()
+  | Trace_handler trace_handler -> ()
+
 let server handler_config =
   let callback _conn req body =
     let uri = Request.uri req in
