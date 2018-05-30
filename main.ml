@@ -2,22 +2,21 @@ open Lwt
 open Cohttp
 open Cohttp_lwt_unix
 
-type uri_parameters = (string * string) list
+type uri_parameters = (string * string option) list
 type query_parameters = (string * string list) list
 type body = string
 type status_code = int
 
 type handler_response =
-  | Full of status_code * body
-  | Normal of status_code * body option
+  | Full of (status_code * body)
   | Minimal of status_code
 
 type connect_handler = uri_parameters -> query_parameters -> (status_code * body)
-type delete_handler = uri_parameters -> query_parameters -> body option -> (status_code * body option)
+type delete_handler = uri_parameters -> query_parameters -> body -> (status_code * body)
 type get_handler = uri_parameters -> query_parameters -> (status_code * body)
 type head_handler = uri_parameters -> query_parameters -> status_code
 type options_handler = uri_parameters -> query_parameters -> (status_code * body)
-type other_handler = string -> uri_parameters -> query_parameters -> body option -> (status_code * body option)
+type other_handler = string -> uri_parameters -> query_parameters -> body -> (status_code * body)
 type patch_handler = uri_parameters -> query_parameters -> body -> status_code
 type post_handler = uri_parameters -> query_parameters -> body -> (status_code * body)
 type put_handler = uri_parameters -> query_parameters -> body -> status_code
@@ -118,7 +117,7 @@ let capture_parameter accumulator uri_catcher uri_part =
   | Parameter_catch (parameter, uri_catch) -> (capture parameter uri_catch uri_part) :: accumulator
 
 let capture_parameters uri_handler uri_parts =
-  Base.List.fold2 uri_handler uri_parts ~init:[] ~f:capture_parameter
+  Base.List.fold2_exn uri_handler uri_parts ~init:[] ~f:capture_parameter
 
 let find_method_handler_config uri handler_config =
   Base.List.find_exn handler_config ~f:(fun (uri_handler, _) -> 
@@ -180,21 +179,38 @@ let get_method_handler method_handler_config =
   | Trace_handler_config (_, trace_handler) -> Trace_handler trace_handler
 
 let apply_with_body method_handler uri_parameters query_parameters body = method_handler uri_parameters query_parameters body
-let apply_with_optional_body method_handler uri_parameters query_parameters optional_body = method_handler uri_parameters query_parameters optional_body
 let apply_with_no_body method_handler uri_parameters query_parameters = method_handler uri_parameters query_parameters
+let apply_other_handler other_handler argument uri_parameters query_parameters body = other_handler argument uri_parameters query_parameters body
 
-let apply_method_handler method_handler =
+let get_others_arguments meth =
+  match meth with
+  | `Other argument -> argument
+  | _ -> failwith "get_others_arguments got called with "
+
+let apply_method_handler meth method_handler uri_parameters query_parameters body =
   match method_handler with
-  | Connect_handler connect_handler -> ()
-  | Delete_handler delete_handler -> ()
-  | Get_handler get_handler -> ()
-  | Head_handler head_handler -> ()
-  | Options_handler options_handler -> ()
-  | Other_handler other_handler -> ()
-  | Patch_handler patch_handler -> ()
-  | Post_handler post_handler -> ()
-  | Put_handler put_handler -> ()
-  | Trace_handler trace_handler -> ()
+  | Connect_handler connect_handler -> Full (apply_with_no_body connect_handler uri_parameters query_parameters)
+  | Delete_handler delete_handler -> Full (apply_with_body delete_handler uri_parameters query_parameters body)
+  | Get_handler get_handler -> Full (apply_with_no_body get_handler uri_parameters query_parameters)
+  | Head_handler head_handler -> Minimal (apply_with_no_body head_handler uri_parameters query_parameters)
+  | Options_handler options_handler -> Full (apply_with_no_body options_handler uri_parameters query_parameters)
+  | Other_handler other_handler -> 
+    let argument = get_others_arguments meth in
+    Full (apply_other_handler other_handler argument uri_parameters query_parameters body)
+  | Patch_handler patch_handler -> Minimal (apply_with_body patch_handler uri_parameters query_parameters body)
+  | Post_handler post_handler -> Full (apply_with_body post_handler uri_parameters query_parameters body)
+  | Put_handler put_handler -> Minimal (apply_with_body put_handler uri_parameters query_parameters body)
+  | Trace_handler trace_handler -> Minimal (apply_with_no_body trace_handler uri_parameters query_parameters)
+
+let send_response response =
+  match response with
+  | Full (status_code, body) -> 
+    let status = Cohttp.Code.status_of_code status_code in
+    Server.respond_string ~status ~body ()
+  | Minimal status_code ->
+    let body = "" in
+    let status = Cohttp.Code.status_of_code status_code in
+    Server.respond_string ~status ~body ()
 
 let server handler_config =
   let callback _conn req body =
@@ -210,7 +226,8 @@ let server handler_config =
     let query = Uri.query uri in
     let headers =  Request.headers req in
     Cohttp_lwt.Body.to_string body >>= fun body ->
-    Server.respond_string ~status:`OK ~body ()
+    let response = apply_method_handler meth method_handler parameters query body in
+    send_response response
   in
   Server.create ~mode:(`TCP (`Port 8000)) (Server.make ~callback ())
 
