@@ -231,10 +231,14 @@ let server handler_config =
   in
   Server.create ~mode:(`TCP (`Port 8000)) (Server.make ~callback ())
 
+let hello_route = [(Simple_catch (Re.str "hello"))]
+let hello_handler uri_parameters query_parameters = (200, "hello_world")
+let hello_config = (hello_route, hello_handler)
+
 let my_config = {
   connect_handlers = [];
   delete_handlers = [];
-  get_handlers = [];
+  get_handlers = [hello_config];
   head_handlers = [];
   options_handlers = [];
   other_handlers = [];
