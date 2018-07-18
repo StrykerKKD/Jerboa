@@ -15,7 +15,7 @@ type route_handler = {
 type handler_config = route_handler list
 
 let filter_handler_config_by_meth meth handler_config =
-  Base.List.filter handler_config (fun (route_handler : route_handler) ->
+  Base.List.filter handler_config ~f:(fun (route_handler : route_handler) ->
       route_handler.meth = meth
     )
 
@@ -60,7 +60,7 @@ let server handler_config =
 let my_route_handler = {
   meth = `GET;
   path_handler = [Path.str "hello"; Path.str "world"];
-  handler = (fun request -> Response.make 200 "Hello World!");
+  handler = (fun _ -> Response.make 200 "Hello World!");
 }
 
 let my_handler_config = [my_route_handler]

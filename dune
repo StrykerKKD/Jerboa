@@ -1,0 +1,3 @@
+(executable
+ (name jerboa)
+ (libraries cohttp-lwt-unix lwt))
