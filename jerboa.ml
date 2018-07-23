@@ -1,5 +1,3 @@
-open Lwt.Infix
-
 type middleware = Request.t -> Request.t
 
 type handler = Request.t -> Response.t
@@ -44,6 +42,7 @@ let apply_route_handler route_handler request =
   | None -> Response.make 200 "Default"
 
 let server handler_config =
+  let open Lwt.Infix in
   let callback _conn req body =
     Request.make req body >>= fun request ->
     let meth = request.meth in
