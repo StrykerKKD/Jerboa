@@ -36,9 +36,14 @@ let find_route_handler route handler_config =
       Re.execp compiled_path_handler route
     )
 
+let handle_route_handler route_handler request =
+  let path_handler = route_handler.path_handler in
+  let request = Request.add_path_parameter request path_handler in
+  route_handler.handler request
+
 let apply_route_handler route_handler request =
   match route_handler with
-  | Some route_handler -> route_handler.handler request
+  | Some route_handler -> handle_route_handler route_handler request
   | None -> Response.make 200 "Default"
 
 let server handler_config =
@@ -58,8 +63,11 @@ let server handler_config =
 
 let my_route_handler = {
   meth = `GET;
-  path_handler = [Path.str "hello"; Path.str "world"];
-  handler = (fun _ -> Response.make 200 "Hello World!");
+  path_handler = [Path.str "hello"; Path.cap_any "name"];
+  handler = (fun request -> 
+    let open Request in
+    let found_name = Base.List.Assoc.find request.path_parameter ~equal:(=) "name" in
+    Response.make 200 ("Hello " ^ (Base.Option.value found_name ~default:"not found")) );
 }
 
 let my_handler_config = [my_route_handler]

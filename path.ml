@@ -12,7 +12,7 @@ let str ?(name = "") part = make ~name (Re.str part)
 
 let anytihng = Re.rep1 (Re.compl [Re.char '/'])
 
-let any ?(name = "") () = make ~name anytihng
+let cap_any name = make ~name anytihng
 
 let sep = make (Re.char '/')
 
