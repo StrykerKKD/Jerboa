@@ -1,7 +1,7 @@
 type t = {
   meth: Cohttp.Code.meth;
   path: string;
-  headers: Cohttp.Header.t;
+  header: Cohttp.Header.t;
   path_parameter: (string * string) list;
   query_parameter: (string * string list) list;
   body: string;
@@ -11,7 +11,7 @@ let create request body =
   let open Lwt.Infix in
   let uri = Cohttp.Request.uri request in
   let meth = Cohttp.Request.meth request in
-  let headers =  Cohttp.Request.headers request in
+  let header =  Cohttp.Request.headers request in
   let path = Uri.path uri in
   let path_parameter = [] in
   let query_parameter = Uri.query uri in
@@ -19,7 +19,7 @@ let create request body =
   Lwt.return {
     meth;
     path;
-    headers;
+    header;
     path_parameter;
     query_parameter;
     body;
