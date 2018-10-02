@@ -7,7 +7,7 @@ type t = {
   body: string;
 }
 
-let make request body =
+let create request body =
   let open Lwt.Infix in
   let uri = Cohttp.Request.uri request in
   let meth = Cohttp.Request.meth request in
@@ -39,8 +39,8 @@ let find_path_parameter accumulator path_and_path_part =
 let find_path_parameters path_and_path_part =
   Base.List.fold path_and_path_part ~init:[] ~f:find_path_parameter
 
-let add_path_parameter request path_handler =
-  let path_parts = Path.get_path_parts request.path in
+let add_path_parameters request path_handler =
+  let path_parts = Path.split_into_path_parts request.path in
   let path_handler_and_parts = Base.List.zip path_handler path_parts in
   let path_parameter_option = Base.Option.map path_handler_and_parts ~f:find_path_parameters in
   let path_parameter = Base.Option.value path_parameter_option ~default:[] in
