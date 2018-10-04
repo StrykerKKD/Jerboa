@@ -1,12 +1,11 @@
-type middleware = Request.t -> Request.t
-
 let default_request_handler _ = 
   Response.create 404 ""
 
-let server ?(default_request_handler = default_request_handler) path_handler_config =
+let create_server port default_request_handler middleware_config path_handler_config =
   let open Lwt.Infix in
   let callback _conn req body =
     Request.create req body >>= fun request ->
+    let request = Middleware_config.apply_middlewares middleware_config request in
     let meth = request.meth in
     let path = request.path in
     let path_handler = Path_handler_config.find_path_handler path_handler_config meth path in
@@ -15,7 +14,20 @@ let server ?(default_request_handler = default_request_handler) path_handler_con
     Cohttp_lwt_unix.Server.respond_string ~status ~body ()
   in
   Cohttp_lwt_unix.Server.create 
-    ~mode:(`TCP (`Port 8000)) (Cohttp_lwt_unix.Server.make ~callback ())
+    ~mode:(`TCP (`Port port)) (Cohttp_lwt_unix.Server.make ~callback ())
+
+let start ?(port = 8000) ?(default_request_handler = default_request_handler) ?(middleware_config = []) path_handler_config =
+  let server = create_server port default_request_handler middleware_config  path_handler_config in
+  Lwt_main.run server
+
+let my_middleware request = 
+  let open Request in
+  if request.path = "/" then 
+    {request with path = "/hello/world"}
+  else
+    request
+
+let my_middleware_config = [my_middleware]
 
 let my_path_handler = Path_handler.create `GET [Path.part "hello"; Path.var "name"] (fun request ->
   let open Request in
@@ -25,4 +37,4 @@ let my_path_handler = Path_handler.create `GET [Path.part "hello"; Path.var "nam
 
 let my_path_handler_config = [my_path_handler]
 
-let () = ignore (Lwt_main.run (server my_path_handler_config))
+let () = ignore (start ~middleware_config:my_middleware_config my_path_handler_config)
