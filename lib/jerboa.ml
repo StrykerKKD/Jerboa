@@ -1,3 +1,11 @@
+module Request = Request
+module Response = Response
+module Path = Path
+module Path_mapping = Path_mapping
+module Path_handler = Path_handler
+module Path_handler_config = Path_handler_config
+module Middleware_config = Middleware_config
+
 let default_request_handler _ = 
   Response.create 404 ""
 
@@ -19,22 +27,3 @@ let create_server port default_request_handler middleware_config path_handler_co
 let start ?(port = 8000) ?(default_request_handler = default_request_handler) ?(middleware_config = []) path_handler_config =
   let server = create_server port default_request_handler middleware_config  path_handler_config in
   Lwt_main.run server
-
-let my_middleware request = 
-  let open Request in
-  if request.path = "/" then 
-    {request with path = "/hello/world"}
-  else
-    request
-
-let my_middleware_config = [my_middleware]
-
-let my_path_handler = Path_handler.create `GET [Path.part "hello"; Path.var "name"] (fun request ->
-  let open Request in
-  let found_path_parameter = Base.List.Assoc.find request.path_parameter ~equal:(=) "name" in
-  Response.create 200 ("Hello " ^ (Base.Option.value found_path_parameter ~default:"not found")) 
-)
-
-let my_path_handler_config = [my_path_handler]
-
-let () = ignore (start ~middleware_config:my_middleware_config my_path_handler_config)
