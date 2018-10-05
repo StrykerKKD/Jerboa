@@ -1,5 +1,5 @@
 let my_middleware request = 
-  let open Request in
+  let open Jerboa.Request in
   if request.path = "/" then 
     {request with path = "/hello/world"}
   else
@@ -7,12 +7,14 @@ let my_middleware request =
 
 let my_middleware_config = [my_middleware]
 
-let my_path_handler = Path_handler.create `GET [Path.part "hello"; Path.var "name"] (fun request ->
-  let open Request in
-  let found_path_parameter = Base.List.Assoc.find request.path_parameter ~equal:(=) "name" in
-  Response.create 200 ("Hello " ^ (Base.Option.value found_path_parameter ~default:"not found")) 
-)
+let my_path_handler = 
+  let open Jerboa in
+  Path_handler.create `GET [Path.part "hello"; Path.var "name"] (fun request ->
+      let open Request in
+      let found_path_parameter = Base.List.Assoc.find request.path_parameter ~equal:(=) "name" in
+      Response.create 200 ("Hello " ^ (Base.Option.value found_path_parameter ~default:"not found")) 
+    )
 
 let my_path_handler_config = [my_path_handler]
 
-let () = ignore (start ~middleware_config:my_middleware_config my_path_handler_config)
+let () = ignore (Jerboa.start ~middleware_config:my_middleware_config my_path_handler_config)
