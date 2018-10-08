@@ -1,5 +1,3 @@
-type t = Path_handler.t list
-
 let filter_path_handler_config_by_meth path_handler_config meth =
   Base.List.filter path_handler_config ~f:(fun (path_handler: Path_handler.t) ->
       path_handler.meth = meth
