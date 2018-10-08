@@ -1,13 +1,23 @@
+(** [Jerboa.Path_handler] module consists of the type definition of the Path_handler and an easy to use constructor.*)
+
+(** [Path_handler.meth] is the http method that will be matched.*)
 type meth = Cohttp.Code.meth
 
+(** [Path_handler.request_handler] is the handler, which will handle the request and produce a response.*)
 type request_handler = Request.t -> Response.t
 
+(** [Path_handler.t] is the type of the path handler, which will be used to handle a specific request.*)
 type t = {
   meth: meth;
   path_mapping: Path_mapping.t;
   request_handler: request_handler;
 }
 
+(** [Path_handler.create meth path_mapping request_handler] is a constructor for path handler records, which work based on:
+  - meth: http method to match
+  - path_mapping: path mapping to used for matching the request's path
+  - request_handler: handler, which will transform the request into a response
+*)
 let create meth path_mapping request_handler = {
     meth;
     path_mapping;

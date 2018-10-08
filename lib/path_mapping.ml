@@ -1,3 +1,6 @@
+(** [Jerboa.Path_mapping] has the type definition of the path mapping.*)
+
+(** [Path_mapping.t] is a list of Path parts which will be used for matching.*)
 type t = Path.t list
 
 let path_mapping_composer path_part path_accumulator =

@@ -1,3 +1,6 @@
+(** [Jerboa.request] module consists of the type definition of the Request record.*)
+
+(** [Request.t] consists of the main parts of a http request like metho, path, header, paramters and it's body.*)
 type t = {
   meth: Cohttp.Code.meth;
   path: string;
