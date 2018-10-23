@@ -9,7 +9,7 @@ let my_middleware_config = [my_middleware]
 
 let my_path_handler = 
   let open Jerboa in
-  Path_handler.create `GET [Path.part "hello"; Path.var "name"] (fun request ->
+  Path_handler.create `GET [Path.const "hello"; Path.var "name"] (fun request ->
       let open Request in
       let found_path_parameter = Base.List.Assoc.find request.path_parameter ~equal:(=) "name" in
       Response.create 200 ("Hello " ^ (Base.Option.value found_path_parameter ~default:"not found")) 
