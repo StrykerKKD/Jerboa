@@ -1,9 +1,12 @@
 opam-version: "2.0"
 name: "jerboa"
 version: "0.1"
-synopsis: "Jerboa is a minimalistic web framework"
+synopsis: "Jerboa is a minimalistic web framework for everyone"
 description: """
-Jerboa is web framework, which tries to be as minimalistic and simple to use as possible with no magic included.
+Jerboa is web framework, which is:
+- Minimalistic: It will give you the building blocks, but nothing more
+- Flexible: It let's you be as flexible as you want to be
+- Easy to use: You only need to understand the simple building blocks to use it
 """
 maintainer: "Robert Toth <kkdstryker@gmail.com>"
 authors: ["Robert Toth"]

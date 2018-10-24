@@ -28,6 +28,8 @@ let create request body =
     body;
   }
 
+(* This function can throw an exception, but it's highly unlikely, 
+  because of the path checking done in the path_handle chossing phase. *)
 let find_path_parameter accumulator path_and_path_part =
   let open Path in
   let path, path_part = path_and_path_part in

@@ -17,4 +17,4 @@ let my_path_handler =
 
 let my_path_handler_config = [my_path_handler]
 
-let () = ignore (Jerboa.start ~middleware_config:my_middleware_config my_path_handler_config)
+let _ = Jerboa.start ~middleware_config:my_middleware_config my_path_handler_config
