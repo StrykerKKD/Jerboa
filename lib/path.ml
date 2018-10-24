@@ -2,7 +2,7 @@
 
 (** [Path.t] is a record, which has a name part used for variable captring and a regex used for matching the path part.*)
 type t = {
-  name: string;
+  name: string option;
   regex: Re.t
 }
 
@@ -10,7 +10,7 @@ type t = {
   - regex: regex defines the wanted path part
 *)
 let create_const regex = {
-  name = "";
+  name = None;
   regex;
 }
 
@@ -19,7 +19,7 @@ let create_const regex = {
   - regex: defines the value to be captured
 *)
 let create_var name regex = {
-  name;
+  name = Some name;
   regex;
 }
 

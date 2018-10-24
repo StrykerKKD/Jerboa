@@ -33,13 +33,12 @@ let create request body =
 let find_path_parameter accumulator path_and_path_part =
   let open Path in
   let path, path_part = path_and_path_part in
-  if not (Base.String.is_empty path.name) then
+  Base.Option.value_map path.name ~default:accumulator ~f:(fun path_name ->
     let path_regex = Re.compile path.regex in
     let match_group = Re.exec path_regex path_part in
     let first_match = Re.Group.get match_group 0 in
-    Base.List.cons (path.name, first_match) accumulator
-  else
-   accumulator
+    Base.List.cons (path_name, first_match) accumulator
+  )
 
 let find_path_parameters path_and_path_part =
   Base.List.fold path_and_path_part ~init:[] ~f:find_path_parameter
