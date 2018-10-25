@@ -13,7 +13,7 @@ This how to is based on the example that you can find in the examples directory.
 First install Jerboa via opam: `opam install jerboa`
 
  The entry point of the framework is the `Jerboa.start` function, which accepts:
-- `port` (optional, default is 8000)
+- `port` (optional, default is 8080)
 - `default_request_handler` (optional, default gives back http 404 error)
 - `middleware_config` (optional, default is empty middleware config)
 - `path_handler_config` (required)
