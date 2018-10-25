@@ -30,7 +30,7 @@ You can create path handlers easily with the `Jerboa.Path_Handler.create` functi
 For example the following creates a path handler for request where:
 - `meth` is a GET request and
 - `path_mapping` matches the `/hello/<something>` path:
-```
+```ocaml
 let my_path_handler = 
   let open Jerboa in
   Path_handler.create `GET [Path.const "hello"; Path.var "name"] (fun request ->
@@ -44,14 +44,34 @@ If we get the specified reuquest than Jerboa will call our `request_handler`, wh
 #### Path mapping
 In the above example we could see that the `path_mapping` is `[Path.const "hello"; Path.var "name"]`, which means that:
 - `Path.const "hello"` means that the first part of the route must be equal to `"hello"`, but it won't be captured as a variable, because it's a constatnt value
-- `Path.var "name"` means that the second part of the route can be anything, but we are capturing it's value in the `name` path parameter
+- `Path.var "name"` means that the second part of the route can be anything, but we are capturing it's value with the `name` path parameter
 
 Path mapping in Jerboa is pretty flexible, because you can make your own regex based path matchings with:
 - `Path.create_const regex`, which create a constant path part with the supplied regex
 - `Path.create_var name regex`, which creates a path variable with the supplied variable name and regex
 
 #### Request handler
+Request handler is basically a function that transforms request(`Request.t`) into a response(`Response.t`). In the above example the following was the `request_handler`:
+```ocaml
+(fun request ->
+  let open Request in
+  let found_path_parameter = Base.List.Assoc.find request.path_parameter ~equal:(=) "name" in
+  Response.create 200 ("Hello " ^ (Base.Option.value found_path_parameter ~default:"not found")) 
+)
+```
+The most important function used in the `request_handler` is the `Response.create` function, which inputs are the http response method and the body of the response.
 
 ### Middleware config
+Middleware config is a list of middlewares and a middleware is a function, which updates the content of the request(`Request.t`) by creating a new request based on the old one. The following example show this in action:
+```ocaml
+let my_middleware request = 
+  let open Jerboa.Request in
+  if request.path = "/" then 
+    {request with path = "/hello/world"}
+  else
+    request
+```
+The above example updates the request's path to point to `/hello/world`, when a request comes with the `/` path.
 
 ### Default request handler
+The default request handler comes into play, when Jerboa can't find a matching `path_handler` for the incoming request. The default `default_request_handler` gives back an empty http 404 response.
