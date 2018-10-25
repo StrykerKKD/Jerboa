@@ -1,4 +1,5 @@
 module Meth = Meth
+module Cookie = Cookie
 module Header = Header
 module Request = Request
 module Response = Response
