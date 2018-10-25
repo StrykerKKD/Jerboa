@@ -2,9 +2,9 @@
 
 (** [Request.t] consists of the main parts of a http request like metho, path, header, paramters and it's body.*)
 type t = {
-  meth: Cohttp.Code.meth;
+  meth: Meth.t;
   path: string;
-  header: Cohttp.Header.t;
+  header: Header.t;
   path_parameter: (string * string) list;
   query_parameter: (string * string list) list;
   body: string;

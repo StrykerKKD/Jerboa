@@ -1,6 +1,9 @@
+module Meth = Meth
+module Header = Header
 module Request = Request
 module Response = Response
 module Path = Path
+module Request_handler = Request_handler
 module Path_mapping = Path_mapping
 module Path_handler = Path_handler
 
