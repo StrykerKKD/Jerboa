@@ -13,7 +13,7 @@ authors: ["Robert Toth"]
 homepage: "https://github.com/StrykerKKD/Jerboa"
 bug-reports: "https://github.com/StrykerKKD/Jerboa/issues"
 dev-repo: "git+https://github.com/StrykerKKD/Jerboa.git"
-doc: "https://strykerkkd.github.io/Jerboa"
+doc: "https://strykerkkd.github.io/Jerboa/"
 license: "MIT"
 build: [
   ["dune" "subst"] {pinned}
