@@ -8,7 +8,7 @@ module Request_handler = Request_handler
 module Path_mapping = Path_mapping
 module Path_handler = Path_handler
 
-(** This is the default request handler that will be run when no matching path is found by Jerboa.
+(** [Jerboa.default_request_handler] is the default request handler that will be run when no matching path is found by Jerboa.
   It gives back a http 404 response with an empty body.
 *)
 let default_request_handler _ = 
